@@ -28,8 +28,8 @@ var width = 900;
 var height = 500;
 
 //low is no covid, high is much covid
-var lowColor = '#f9f9f9'
-var highColor = '#000000'
+var lowColor = '#00ff00'
+var highColor = '#ff0000'
 
 // D3 Projection
 var projection = d3.geoAlbersUsa()
@@ -48,26 +48,32 @@ var svg = d3.select("#chart")
   .attr("height", height); 
 
 //open CSV
-d3.csv("COVID_data_oneMonth.csv", function(data) {
+d3.csv("COVID_data_full.csv", function(data) {
+  var week = "2020-09-26";
+  var weekList = data.filter(function(d){d => d.week});
+  console.log(weekList);
 	var dataArray = [];
 	for (var d = 0; d < data.length; d++) {
-		dataArray.push(parseFloat(data[d].value))
+    dataArray.push(parseFloat(data[d].value))
 	}
 	var minVal = d3.min(dataArray)
 	var maxVal = d3.max(dataArray)
 	var ramp = d3.scaleLinear().domain([minVal,maxVal]).range([lowColor,highColor])
-	
+
   // Also open JSON, now both are open
   d3.json("usStates.json", function(json) {
+    var weekData = data.filter(function(d){ 
+      if (d.week == week){return d} 
+    });
 
     // Iterate through CSV
-    for (var i = 0; i < data.length; i++) {
+    for (var i = 0; i < weekData.length; i++) {
 
       // Grab State Name
-      var dataState = data[i].state;
+      var dataState = weekData[i].state;
 
       // Grab data value 
-      var dataValue = data[i].value;
+      var dataValue = weekData[i].value;
 
       // Find the state in the JSON
       for (var j = 0; j < json.features.length; j++) {
@@ -85,7 +91,7 @@ d3.csv("COVID_data_oneMonth.csv", function(data) {
       .enter()
       .append("path")
       .attr("d", path)
-      .style("stroke", "#fff")
+      .style("stroke", "#000")
       .style("stroke-width", "1")
       .style("fill", function(d) { return ramp(d.properties.value) });
     
@@ -138,15 +144,50 @@ d3.csv("COVID_data_oneMonth.csv", function(data) {
 
 
     // Define the slider
-  const sliderRange = d3
-    .sliderBottom()
-    .min('2018-01-04')
-    .max('2022-12-31')
+    var sliderRange = d3
+    .sliderHorizontal()
+    .min(d3.min(weekList))
+    .max(d3.max(weekList))
     .width(400)
     .tickFormat(d3.timeFormat('%Y-%m-%d'))
-    .ticks(5)
-    .default(['2018-01-04'])
-    .fill('#85bb65');
+    .ticks(4)
+    .default(d3.min(weekList))
+    .fill('#0000cc');
+
+    sliderRange.on('onchange', val => {
+    // Filter data based on slider values
+    week = val;
+
+    //update json data
+    for (var i = 0; i < weekData.length; i++) {
+
+      // Grab State Name
+      var dataState = weekData[i].state;
+
+      // Grab data value 
+      var dataValue = weekData[i].value;
+
+      // Find the state in the JSON
+      for (var j = 0; j < json.features.length; j++) {
+        var jsonState = json.features[j].properties.name;
+
+        if (dataState == jsonState) {
+          json.features[j].properties.value = dataValue;
+          break;
+        }
+      }
+    }
+
+    //redraw map
+    svg.selectAll("path")
+      .data(json.features)
+      .enter()
+      .append("path")
+      .attr("d", path)
+      .style("stroke", "#000")
+      .style("stroke-width", "1")
+      .style("fill", function(d) { return ramp(d.properties.value) });
+  });
 
   // Add the slider to the DOM
   const gRange = d3
