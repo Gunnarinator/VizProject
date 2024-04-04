@@ -16,19 +16,24 @@
 </style>
 </head>
 <body>
+  
     <div id="chart"></div>
     <div id="slider-range"></div>
-    
+    <input type="range" name="mySlider" id=mySlider min="0" max="200" value="50">
+    <div id="weekText"></div>
     <script src="https://unpkg.com/d3-simple-slider"></script>
 
 <script type="text/javascript">
 		
+//weeks Array is needed for the slider
+var weeksArr = [];
+
 //width/height of the map div
 var width = 900;
 var height = 500;
 
 //low is no covid, high is much covid
-var lowColor = '#00ff00'
+var lowColor = '#006600'
 var highColor = '#ff0000'
 
 // D3 Projection
@@ -49,17 +54,21 @@ var svg = d3.select("#chart")
 
 //open CSV
 d3.csv("COVID_data_full.csv", function(data) {
-  var week = "2020-09-26";
-  var weekList = data.filter(function(d){d => d.week});
-  console.log(weekList);
+  var week = "2020-10-31";
+
 	var dataArray = [];
 	for (var d = 0; d < data.length; d++) {
-    dataArray.push(parseFloat(data[d].value))
+    dataArray.push(data[d].value)
+    if(!weeksArr.includes(data[d].week)){
+      weeksArr.push(data[d].week)
+    }
 	}
 	var minVal = d3.min(dataArray)
 	var maxVal = d3.max(dataArray)
 	var ramp = d3.scaleLinear().domain([minVal,maxVal]).range([lowColor,highColor])
 
+  var slider = d3.select("#mySlider")
+  slider.max = weeksArr.length;
   // Also open JSON, now both are open
   d3.json("usStates.json", function(json) {
     var weekData = data.filter(function(d){ 
@@ -142,21 +151,21 @@ d3.csv("COVID_data_full.csv", function(data) {
 
         //end legend
 
+      d3.select("#mySlider").on("change", function(d){
+    var newWeek = weeksArr[this.value]
+    updateChart(newWeek, data)
+  })
 
-    // Define the slider
-    var sliderRange = d3
-    .sliderHorizontal()
-    .min(d3.min(weekList))
-    .max(d3.max(weekList))
-    .width(400)
-    .tickFormat(d3.timeFormat('%Y-%m-%d'))
-    .ticks(4)
-    .default(d3.min(weekList))
-    .fill('#0000cc');
-
-    sliderRange.on('onchange', val => {
+  function updateChart(w, data){
     // Filter data based on slider values
-    week = val;
+    week = w;
+
+    label.select("text")
+    .text(week);
+
+    var weekData = data.filter(function(d){ 
+      if (d.week == week){return d} 
+    });
 
     //update json data
     for (var i = 0; i < weekData.length; i++) {
@@ -179,28 +188,10 @@ d3.csv("COVID_data_full.csv", function(data) {
     }
 
     //redraw map
-    svg.selectAll("path")
-      .data(json.features)
-      .enter()
-      .append("path")
-      .attr("d", path)
-      .style("stroke", "#000")
-      .style("stroke-width", "1")
-      .style("fill", function(d) { return ramp(d.properties.value) });
-  });
+    svg.selectAll("path").style("fill", function(d) { return ramp(d.properties.value) });
+  
+}
 
-  // Add the slider to the DOM
-  const gRange = d3
-    .select('#slider-range')
-    .append('svg')
-    .attr('width', 800)
-    .attr('height', 70)
-    .append('g')
-    .attr('transform', 'translate(250,20)');
-
-  gRange.call(sliderRange);
-  //end slider
-        
 
   //add title
   svg.append("text")
@@ -211,6 +202,17 @@ d3.csv("COVID_data_full.csv", function(data) {
     .style("font-weight", "bold")
     .style("font-family", "sans-serif")
     .text("U.S. Covid Deaths vs. Air Travel");
+
+    //end title
+
+  //add week label
+  var label = d3.select("#weekText")
+  label.append("text")
+    .attr("class", "weekText")
+    .style("font-size", "18px")
+    .style("font-weight", "bold")
+    .style("font-family", "sans-serif")
+    .text(week);
 
     //end title
     
