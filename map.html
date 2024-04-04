@@ -53,12 +53,12 @@ var svg = d3.select("#chart")
   .attr("height", height); 
 
 //open CSV
-d3.csv("COVID_data_full.csv", function(data) {
+d3.csv("COVID_data_final.csv", function(data) {
   var week = "2020-10-31";
 
 	var dataArray = [];
 	for (var d = 0; d < data.length; d++) {
-    dataArray.push(data[d].value)
+    dataArray.push(+data[d].value)
     if(!weeksArr.includes(data[d].week)){
       weeksArr.push(data[d].week)
     }
