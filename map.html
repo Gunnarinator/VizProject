@@ -1,226 +1,35 @@
-<!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <title>Weekly COVID Spread</title>
-<meta charset="utf-8">
-<script src="https://d3js.org/d3.v4.min.js"></script>
-<style type="text/css">
+    <meta charset="utf-8">
+    <title>Flight Paths using Edge Bundling</title>
 
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+    <script src="https://unpkg.com/topojson@3"></script>
+    <script src="https://unpkg.com/d3-delaunay@4"></script>
+    <script src="https://unpkg.com/d3-geo-voronoi@1"></script>
 
-.legend {
-	position:absolute;
-	left:20px;
-	top:80px;
-}
-
-</style>
+    <link href="style.css" rel="stylesheet">
 </head>
+
 <body>
-  
-    <div id="chart"></div>
+
+    <!-- must be 960x600 to match topojson us atlas files -->
+    <svg width="960" height="600">
+        <!-- must be in this order for drawing -->
+        <g id="basemap"></g>
+        <g id="flights"></g>
+        <g id="airports"></g>
+        <g id="voronoi"></g>
+        <text id="tooltip" style="display: none;"></text>
+    </svg>
     <div id="slider-range"></div>
     <input type="range" name="mySlider" id=mySlider min="0" max="200" value="50">
     <div id="weekText"></div>
-    <script src="https://unpkg.com/d3-simple-slider"></script>
 
-<script type="text/javascript">
-		
-//weeks Array is needed for the slider
-var weeksArr = [];
-
-//width/height of the map div
-var width = 900;
-var height = 500;
-
-//low is no covid, high is much covid
-var lowColor = '#006600'
-var highColor = '#ff0000'
-
-// D3 Projection
-var projection = d3.geoAlbersUsa()
-    //has to be width/2, height/2 so that it's properly centered.
-  .translate([width/2, height/2])
-  .scale([1000]);
-
-
-var path = d3.geoPath() 
-  .projection(projection);
-
-
-var svg = d3.select("#chart")
-  .append("svg")
-  .attr("width", width)
-  .attr("height", height); 
-
-//open CSV
-d3.csv("COVID_data_final.csv", function(data) {
-  var week = "2020-10-31";
-
-	var dataArray = [];
-	for (var d = 0; d < data.length; d++) {
-    dataArray.push(+data[d].value)
-    if(!weeksArr.includes(data[d].week)){
-      weeksArr.push(data[d].week)
-    }
-	}
-	var minVal = d3.min(dataArray)
-	var maxVal = d3.max(dataArray)
-	var ramp = d3.scaleLinear().domain([minVal,maxVal]).range([lowColor,highColor])
-
-  var slider = d3.select("#mySlider")
-  slider.max = weeksArr.length;
-  // Also open JSON, now both are open
-  d3.json("usStates.json", function(json) {
-    var weekData = data.filter(function(d){ 
-      if (d.week == week){return d} 
-    });
-
-    // Iterate through CSV
-    for (var i = 0; i < weekData.length; i++) {
-
-      // Grab State Name
-      var dataState = weekData[i].state;
-
-      // Grab data value 
-      var dataValue = weekData[i].value;
-
-      // Find the state in the JSON
-      for (var j = 0; j < json.features.length; j++) {
-        var jsonState = json.features[j].properties.name;
-
-        if (dataState == jsonState) {
-          json.features[j].properties.value = dataValue;
-          break;
-        }
-      }
-    }
-
-    svg.selectAll("path")
-      .data(json.features)
-      .enter()
-      .append("path")
-      .attr("d", path)
-      .style("stroke", "#000")
-      .style("stroke-width", "1")
-      .style("fill", function(d) { return ramp(d.properties.value) });
-    
-		// add a legend
-		var w = 140, h = 300;
-
-		var key = d3.select("body")
-			.append("svg")
-			.attr("width", w)
-			.attr("height", h)
-			.attr("class", "legend");
-
-		var legend = key.append("defs")
-			.append("svg:linearGradient")
-			.attr("id", "gradient")
-			.attr("x1", "100%")
-			.attr("y1", "0%")
-			.attr("x2", "100%")
-			.attr("y2", "100%")
-			.attr("spreadMethod", "pad");
-
-		legend.append("stop")
-			.attr("offset", "0%")
-			.attr("stop-color", highColor)
-			.attr("stop-opacity", 1);
-			
-		legend.append("stop")
-			.attr("offset", "100%")
-			.attr("stop-color", lowColor)
-			.attr("stop-opacity", 1);
-
-		key.append("rect")
-			.attr("width", w - 100)
-			.attr("height", h)
-			.style("fill", "url(#gradient)")
-			.attr("transform", "translate(0,10)");
-
-		var y = d3.scaleLinear()
-			.range([h, 0])
-			.domain([minVal, maxVal]);
-
-		var yAxis = d3.axisRight(y);
-
-		key.append("g")
-			.attr("class", "y axis")
-			.attr("transform", "translate(41,10)")
-			.call(yAxis)
-
-        //end legend
-
-      d3.select("#mySlider").on("change", function(d){
-    var newWeek = weeksArr[this.value]
-    updateChart(newWeek, data)
-  })
-
-  function updateChart(w, data){
-    // Filter data based on slider values
-    week = w;
-
-    label.select("text")
-    .text(week);
-
-    var weekData = data.filter(function(d){ 
-      if (d.week == week){return d} 
-    });
-
-    //update json data
-    for (var i = 0; i < weekData.length; i++) {
-
-      // Grab State Name
-      var dataState = weekData[i].state;
-
-      // Grab data value 
-      var dataValue = weekData[i].value;
-
-      // Find the state in the JSON
-      for (var j = 0; j < json.features.length; j++) {
-        var jsonState = json.features[j].properties.name;
-
-        if (dataState == jsonState) {
-          json.features[j].properties.value = dataValue;
-          break;
-        }
-      }
-    }
-
-    //redraw map
-    svg.selectAll("path").style("fill", function(d) { return ramp(d.properties.value) });
-  
-}
-
-
-  //add title
-  svg.append("text")
-    .attr("class", "chart-title")
-    .attr("x", 350)
-    .attr("y", 40)
-    .style("font-size", "20px")
-    .style("font-weight", "bold")
-    .style("font-family", "sans-serif")
-    .text("U.S. Covid Deaths vs. Air Travel");
-
-    //end title
-
-  //add week label
-  var label = d3.select("#weekText")
-  label.append("text")
-    .attr("class", "weekText")
-    .style("font-size", "18px")
-    .style("font-weight", "bold")
-    .style("font-family", "sans-serif")
-    .text(week);
-
-    //end title
-    
-  }); //close JSON
-
-  
-}); //close CSV
-</script>
+    <script src="script.js"></script>
 
 </body>
+
 </html>

@@ -1,7 +1,7 @@
 const urls = {
     // source: https://observablehq.com/@mbostock/u-s-airports-voronoi
     // source: https://github.com/topojson/us-atlas
-    map: "states-albers-10m.json",
+    map: "./data/usStates.json",
 
     // source: https://gist.github.com/mbostock/7608400
     airports:
@@ -11,19 +11,35 @@ const urls = {
     // source: https://gist.github.com/mbostock/7608400
     flights:
         // "https://gist.githubusercontent.com/mbostock/7608400/raw/e5974d9bba45bc9ab272d98dd7427567aafd55bc/flights.csv"
-        "./data/flights_mini.csv"
+        "./data/flights_mini.csv",
+
+    covid:
+        "./data/COVID_data_final.csv"
 };
 
-const svg = d3.select("svg");
+const margin = { top: 0, right: 0, bottom: 0, left: 50 }
+const svg = d3.select("svg").attr("transform", `translate(${margin.left}, ${margin.top})`);;
 
 const width = parseInt(svg.attr("width"));
 const height = parseInt(svg.attr("height"));
 const hypotenuse = Math.sqrt(width * width + height * height);
+const lowColor = '#006600'
+const highColor = '#ff0000'
+
+//weeks Array is needed for the slider
+var weeksArr = [];
+// javscript key-value map
+var state_to_value = new Map();
+
 
 // must be hard-coded to match our topojson projection
 // source: https://github.com/topojson/us-atlas
-const projection = d3.geoAlbers().scale(1280).translate([480, 300]);
-
+// const projection = d3.geoAlbers().scale(1280).translate([480, 300]);
+const projection = d3.geoAlbersUsa()
+        //has to be width/2, height/2 so that it's properly centered.
+        .translate([width / 2, height / 2])
+        .scale([1000]);
+        
 const scales = {
     // used to scale airport bubbles
     airports: d3.scaleSqrt()
@@ -34,6 +50,8 @@ const scales = {
         .domain([0, hypotenuse])
         .range([1, 10])
 };
+
+
 
 // have these already created for easier drawing
 const g = {
@@ -52,25 +70,60 @@ const tooltip = d3.select("text#tooltip");
 console.assert(tooltip.size() === 1);
 
 // load and draw base map
-d3.json(urls.map).then(drawMap);
+d3.json(urls.map).then(drawMap)
+
 
 // load the airport and flight data together
 const promises = [
     d3.csv(urls.airports, typeAirport),
-    d3.csv(urls.flights, typeFlight)
+    d3.csv(urls.flights, typeFlight),
+    d3.csv(urls.covid, typeCovid),
 ];
 
 Promise.all(promises).then(processData);
 
 // process airport and flight data
 function processData(values) {
-    console.assert(values.length === 2);
+    console.assert(values.length === 3);
 
     let airports = values[0];
     let flights = values[1];
+    let covid_data = values[2];
+    var week = "2020-10-31";
+
+    // process covid data
+    covid_data.minVal = d3.min(covid_data, function (d) { return +d.value; });
+    covid_data.maxVal = d3.max(covid_data, function (d) { return +d.value; });
+    const ramp = d3.scaleLinear().domain([covid_data.minVal, covid_data.maxVal]).range([lowColor, highColor])
+    // console.log("ramp: " + ramp)
+    var weekData = covid_data.filter(function (d) {
+        if (d.week == week) { return d }
+    });
+    console.log("weekData.length: " + weekData.length)
+    console.log("state_to_value: " + state_to_value)
+    // console.log("state_to_value: " + state_to_value.get("Alabama"))
+    // state_to_value.set("Alabama", 5)
+    // console.log("state_to_value: " + state_to_value.get("Alabama"))
+    // console.log("weekData.length: " + weekData.length)
+
+    // draw map
+    updateChart(week, covid_data, ramp)
+
+    for (var d = 0; d < covid_data.length; d++) {
+        if (!weeksArr.includes(covid_data[d].week)) {
+            weeksArr.push(covid_data[d].week)
+        }
+    }
+    const slider = d3.select("#mySlider")
+    slider.max = weeksArr.length;
+    
+
+    console.log("covid.minVal: " + covid_data.minVal)
+    console.log("covid.maxVal: " + covid_data.maxVal)
+    console.log("covid.length: " + covid_data.length)
 
     console.log("airports: " + airports.length);
-    console.log(" flights: " + flights.length);
+    console.log("flights: " + flights.length);
 
     // convert airports array (pre filter) into map for fast lookup
     // let iata = new Map(airports.map(node => [node.iata, node]));
@@ -79,7 +132,7 @@ function processData(values) {
     // calculate incoming and outgoing degree based on flights
     // flights are given by airport iata code (not index)
     flights.forEach(function (link) {
-        
+
         // link.source = iata.get(link.origin);
         // link.target = iata.get(link.destination);
         link.source = iata.get(link.origin_state);
@@ -87,10 +140,10 @@ function processData(values) {
         // console.log("link.source: " + link.source)
         // console.log("link.dest_state: " + link.dest_state)
         link.target = iata.get(link.dest_state);
-        console.log("link.origin_state: " + link.origin_state)
-        console.log("link.dest_state: " + link.dest_state)
-        console.log("link.source: " + link.source.usa_state)
-        console.log("link.target: " + link.target.usa_state)
+        // console.log("link.origin_state: " + link.origin_state)
+        // console.log("link.dest_state: " + link.dest_state)
+        // console.log("link.source: " + link.source.usa_state)
+        // console.log("link.target: " + link.target.usa_state)
         link.source.outgoing += link.count;
         link.target.incoming += link.count;
     });
@@ -121,6 +174,10 @@ function processData(values) {
     // done filtering airports can draw
     drawAirports(airports);
     drawPolygons(airports);
+    drawLegend(covid_data.minVal, covid_data.maxVal);
+    drawTitle();
+    drawLabel(week);
+    // updateMap(covid_data);
 
     // reset map to only include airports post-filter
     iata = new Map(airports.map(node => [node.iata, node]));
@@ -130,41 +187,49 @@ function processData(values) {
     flights = flights.filter(link => iata.has(link.source.iata) && iata.has(link.target.iata));
     console.log(" removed: " + (old - flights.length) + " flights");
 
+    d3.select("#mySlider").on("change", function (d) {
+        var newWeek = weeksArr[this.value];
+        console.log("newWeek: " + newWeek);
+        updateChart(newWeek, covid_data, ramp)
+    })
+
     // done filtering flights can draw
     drawFlights(airports, flights);
 
     console.log({ airports: airports });
     console.log({ flights: flights });
+
 }
 
 // draws the underlying map
 function drawMap(map) {
-    // remove non-continental states
-    // map.objects.states.geometries = map.objects.states.geometries.filter(isContinental);
+    map.features.forEach(function(d) { 
+        // console.log("d.name: " + d.properties.name);
+        state_to_value.set(d.properties.name,0)
+    });
 
-    // run topojson on remaining states and adjust projection
-    let land = topojson.merge(map, map.objects.states.geometries);
+    // console.log("weekData.length: " + weekData.length)
+    // console.log("weekData.length: " + weekData.length)
+    // console.log("weekData: " + weekData[0])
+   
+    console.log("drawMap");
+    console.log("drawMap: " + map.features);
 
-    // use null projection; data is already projected
-    let path = d3.geoPath();
 
-    // draw base map
-    g.basemap.append("path")
-        .datum(land)
-        .attr("class", "land")
-        .attr("d", path);
 
-    // draw interior borders
-    g.basemap.append("path")
-        .datum(topojson.mesh(map, map.objects.states, (a, b) => a !== b))
-        .attr("class", "border interior")
-        .attr("d", path);
+    const path = d3.geoPath()
+        .projection(projection);
 
-    // draw exterior borders
-    g.basemap.append("path")
-        .datum(topojson.mesh(map, map.objects.states, (a, b) => a === b))
-        .attr("class", "border exterior")
-        .attr("d", path);
+    // actually draw the grid
+    g.basemap
+        .selectAll("path")
+        .data(map.features)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .style("stroke", "white")
+        .style("stroke-width", "1")
+        .style("fill", "#dddddd");
 }
 
 function drawAirports(airports) {
@@ -186,6 +251,94 @@ function drawAirports(airports) {
             // makes it fast to select airports on hover
             d.bubble = this;
         });
+}
+
+function drawLegend(minVal, maxVal) {
+
+    // add a legend
+    var w = 140, h = 300;
+
+    var key = d3.select("body")
+        .append("svg")
+        .attr("width", w)
+        .attr("height", h)
+        .attr("class", "legend");
+
+    var legend = key.append("defs")
+        .append("svg:linearGradient")
+        .attr("id", "gradient")
+        .attr("x1", "100%")
+        .attr("y1", "0%")
+        .attr("x2", "100%")
+        .attr("y2", "100%")
+        .attr("spreadMethod", "pad");
+
+    legend.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", highColor)
+        .attr("stop-opacity", 1);
+
+    legend.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", lowColor)
+        .attr("stop-opacity", 1);
+
+    key.append("rect")
+        .attr("width", w - 100)
+        .attr("height", h)
+        .style("fill", "url(#gradient)")
+        .attr("transform", "translate(0,10)");
+
+    var y = d3.scaleLinear()
+        .range([h, 0])
+        .domain([minVal, maxVal]);
+
+    var yAxis = d3.axisRight(y);
+
+    key.append("g")
+        .attr("class", "y axis")
+        .attr("transform", "translate(41,10)")
+        .call(yAxis)
+
+    //end legend
+}
+
+function drawTitle() {
+    svg.append("text")
+        .attr("class", "chart-title")
+        .attr("x", 350)
+        .attr("y", 40)
+        .style("font-size", "20px")
+        .style("font-weight", "bold")
+        .style("font-family", "sans-serif")
+        .text("U.S. Covid Deaths vs. Air Travel");
+}
+
+function drawLabel(week) {
+    var label = d3.select("#weekText")
+    label.append("text")
+        .attr("class", "weekText")
+        .style("font-size", "18px")
+        .style("font-weight", "bold")
+        .style("font-family", "sans-serif")
+        .text(week);
+}
+
+function updateMap(covid_data) {
+    var week = "2020-10-31";
+
+    var dataArray = [];
+    for (var d = 0; d < data.length; d++) {
+        dataArray.push(+data[d].value)
+        if (!weeksArr.includes(data[d].week)) {
+            weeksArr.push(data[d].week)
+        }
+    }
+    const minVal = d3.min(dataArray)
+    const maxVal = d3.max(dataArray)
+    const ramp = d3.scaleLinear().domain([minVal, maxVal]).range([lowColor, highColor])
+
+
 }
 
 function drawPolygons(airports) {
@@ -236,7 +389,7 @@ function drawPolygons(airports) {
             tooltip.text(airport.usa_state +
                 "\noutgoing flight: " + airport.outgoing +
                 "\nincoming flight: " + airport.incoming
-                );
+            );
 
             // double check if the anchor needs to be changed
             let bbox = tooltip.node().getBBox();
@@ -401,6 +554,8 @@ function typeAirport(airport) {
 
     // use projection hard-coded to match topojson data
     const coords = projection([airport.longitude, airport.latitude]);
+    // console.log("coords: " + coords);
+    // console.log("airport: " + airport.usa_state);
     airport.x = coords[0];
     airport.y = coords[1];
 
@@ -418,6 +573,11 @@ function typeFlight(flight) {
     flight.count = parseInt(flight.count);
     return flight;
 }
+function typeCovid(covid) {
+    // just in case we need to parse covid data
+
+    return covid;
+}
 
 // calculates the distance between two nodes
 // sqrt( (x2 - x1)^2 + (y2 - y1)^2 )
@@ -426,4 +586,30 @@ function distance(source, target) {
     const dy2 = Math.pow(target.y - source.y, 2);
 
     return Math.sqrt(dx2 + dy2);
+}
+
+function updateChart(week, data, ramp) {
+    // Filter data based on slider values
+
+    var label = d3.select("#weekText")
+    label.select("text")
+        .text(week);
+
+    var weekData = data.filter(function (d) {
+        if (d.week == week) { return d }
+    });
+
+    //update json data
+    weekData.forEach(function (row) {
+        state_to_value.set(row.state, row.value);
+    })
+
+    //redraw map
+    svg.selectAll("path").style("fill", function (d) {
+        console.log("d.properties: " + d.properties.name)
+        return ramp(state_to_value.get(d.properties.name));
+    });
+
+    // TODO: filter the flight data
+
 }
