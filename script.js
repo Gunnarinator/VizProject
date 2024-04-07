@@ -95,6 +95,7 @@ function processData(values) {
     covid_data.minVal = d3.min(covid_data, function (d) { return +d.value; });
     covid_data.maxVal = d3.max(covid_data, function (d) { return +d.value; });
     const ramp = d3.scaleLinear().domain([covid_data.minVal, covid_data.maxVal]).range([lowColor, highColor])
+
     // console.log("ramp: " + ramp)
     var weekData = covid_data.filter(function (d) {
         if (d.week == week) { return d }
@@ -387,8 +388,8 @@ function drawPolygons(airports) {
             // set the tooltip text
             // tooltip.text(airport.name + " in " + airport.city + ", " + airport.state);
             tooltip.text(airport.usa_state +
-                "\noutgoing flight: " + airport.outgoing +
-                "\nincoming flight: " + airport.incoming
+                "<br>outgoing flight: " + airport.outgoing +
+                "<br>incoming flight: " + airport.incoming
             );
 
             // double check if the anchor needs to be changed
