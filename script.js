@@ -241,7 +241,7 @@ function drawMap(map) {
         .enter()
         .append("path")
         .attr("d", path)
-        .style("stroke", "white")
+        .style("stroke", "black")
         .style("stroke-width", "1")
         .style("fill", "#dddddd");
 }
@@ -624,7 +624,9 @@ function updateChart(week, data, ramp) {
     svg.selectAll("path").style("fill", function (d) {
         // console.log("d.properties: " + d.properties)
         if (typeof d.properties !== 'undefined') {
-
+            if(state_to_value.get(d.properties.name) == "No Data"){
+                return "#ffffff";
+            }
             // console.log("d.properties: " + d.properties.name)
             return ramp(state_to_value.get(d.properties.name));
         }
