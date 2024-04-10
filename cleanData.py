@@ -10,6 +10,60 @@ newfile = []
 i = -1
 
 
+statePop = {
+    "Alabama" : 51,
+    "Alaska":  7,
+    "Arizona":  74,
+    "Arkansas":  31,
+    "California":  390,
+    "Colorado":  59,
+    "Connecticut":  36,
+    "Delaware":  10,
+    "Maryland":  68,
+    "Florida":  226,
+    "Georgia":  110,
+    "Hawaii":  14,
+    "Idaho":  20,
+    "Illinois":  125,
+    "Indiana":  69,
+    "Iowa":  32,
+    "Kansas":  29,
+    "Kentucky":  45,
+    "Louisiana":  46,
+    "Maine":  14,
+    "Massachusetts":  70,
+    "Michigan":  100,
+    "Minnesota":  57,
+    "Mississippi":  29,
+    "Missouri":  62,
+    "Montana":  11,
+    "Nebraska":  20,
+    "Nevada":  32,
+    "New Hampshire":  14,
+    "New Jersey":  93,
+    "New Mexico":  21,
+    "New York":  196,
+    "North Carolina":  108,
+    "North Dakota":  8,
+    "Ohio":  118,
+    "Oklahoma":  41,
+    "Oregon":  42,
+    "Pennsylvania":  130,
+    "Puerto Rico":  500,
+    "Rhode Island":  11,
+    "South Carolina":  54,
+    "South Dakota":  9,
+    "Tennessee":  71,
+    "Texas":  305,
+    "Utah":  34,
+    "Vermont":  6,
+    "Virginia":  87,
+    "Washington":  78,
+    "West Virginia":  18,
+    "Wisconsin":  59,
+    "Wyoming":  6,
+}
+
 def toArr(string):
     retval = []
     col = 0
@@ -32,7 +86,7 @@ def toArr(string):
 
 
 firstRow = True
-for row in open("COVID_data_full.csv"):
+for row in open("data/COVID_data_full.csv"):
     i += 1
     
     if(i == 0):
@@ -52,7 +106,7 @@ for row in open("COVID_data_full.csv"):
         newRow.append(row[1])
     elif(row[1] == "New York City"):
         if(newfile[nyIndex][2] != "No Data" and row[2] != ""):
-            newfile[nyIndex][2] += row[2]
+            newfile[nyIndex][2] += row[2]/statePop["New York"]
         i -= 1
         continue
     elif(row[1] == "District of Columbia"):
@@ -60,9 +114,11 @@ for row in open("COVID_data_full.csv"):
         newRow.append("Maryland")
     elif(row[1] == "Maryland"):
         if(newfile[mlIndex][2] != "No Data" and row[2] != ""):
-            newfile[mlIndex][2] += row[2]
+            newfile[mlIndex][2] += row[2]/statePop["Maryland"]
+        elif(row[2] != "No Data" and row[2] != ""):
+            newfile[mlIndex][2] = row[2]/statePop["Maryland"]
         else:
-            newfile[mlIndex][2] = row[2]
+            newfile[mlIndex][2] = "No Data"
         i -= 1
         continue
     else:
@@ -74,7 +130,7 @@ for row in open("COVID_data_full.csv"):
     if(row[2] == ''):
         newRow.append("No Data")
     else:
-        newRow.append(row[2])
+        newRow.append(row[2]/statePop[newRow[1]])
 
     newfile.append(newRow)
 
@@ -91,5 +147,5 @@ for row in newfile:
     else:
         output += row[0] + "," + row[1] + "," + str(row[2]) + "\n"
 
-with open("COVID_data_final.csv", "w+") as f:
+with open("COVID_data_perCapita.csv", "w+") as f:
     f.write(output)

@@ -15,7 +15,7 @@ const urls = {
         // "./data/flights_10k.csv",
         "./data/flights_full.csv",
     covid:
-        "./data/COVID_data_final.csv"
+        "./data/COVID_data_perCapita.csv"
 };
 
 const margin = { top: 0, right: 0, bottom: 0, left: 50 }
@@ -322,12 +322,12 @@ function drawLegend(minVal, maxVal) {
 function drawTitle() {
     svg.append("text")
         .attr("class", "chart-title")
-        .attr("x", 350)
+        .attr("x", 300)
         .attr("y", 40)
         .style("font-size", "20px")
         .style("font-weight", "bold")
         .style("font-family", "sans-serif")
-        .text("U.S. Covid Deaths vs. Air Travel");
+        .text("U.S. Covid Deaths per capita vs. Air Travel");
 }
 
 function drawLabel(week) {
