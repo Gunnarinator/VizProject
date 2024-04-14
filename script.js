@@ -631,9 +631,6 @@ function updateChart(week, data, ramp) {
             return ramp(state_to_value.get(d.properties.name));
         }
     });
-
-    // TODO: filter the flight data
-
 }
 
 function updateAirport(newWeek, all_airports, all_flights) {
