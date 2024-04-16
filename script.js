@@ -15,7 +15,9 @@ const urls = {
         // "./data/flights_10k.csv",
         "./data/flights_full.csv",
     covid:
-        "./data/COVID_data_perCapita.csv"
+        // "./data/COVID_data_perCapita.csv"
+        "./data/COVID_data_perCapita_cut.csv"
+        // "./data/COVID_data_final.csv"
 };
 
 const margin = { top: 0, right: 0, bottom: 0, left: 50 }
@@ -24,7 +26,8 @@ const svg = d3.select("svg").attr("transform", `translate(${margin.left}, ${marg
 const width = parseInt(svg.attr("width"));
 const height = parseInt(svg.attr("height"));
 const hypotenuse = Math.sqrt(width * width + height * height);
-const lowColor = '#006600'
+// const lowColor = '#006600'
+const lowColor = '#ffffff'
 const highColor = '#ff0000'
 // const ignore_zero = true;
 const ignore_zero = false;
@@ -46,7 +49,7 @@ const projection = d3.geoAlbersUsa()
 const scales = {
     // used to scale airport bubbles
     airports: d3.scaleSqrt()
-        .range([5, 20]),
+        .range([2, 25]),
 
     // used to scale number of segments per line
     segments: d3.scaleLinear()
@@ -128,6 +131,7 @@ function processData(values) {
     }
     const slider = d3.select("#mySlider")
     slider.max = weeksArr.length;
+    console.log("weeksArr.length: " + weeksArr.length)
 
 
     console.log("covid.minVal: " + covid_data.minVal)
@@ -184,11 +188,10 @@ function processData(values) {
 
     // done filtering airports can draw
     drawAirports(airports);
-    drawPolygons(airports);
+    drawPolygons(airports, covid_data);
     drawLegend(covid_data.minVal, covid_data.maxVal);
     drawTitle();
     drawLabel(week);
-    // updateMap(covid_data);
 
     // reset map to only include airports post-filter
     iata = new Map(airports.map(node => [node.iata, node]));
@@ -241,8 +244,10 @@ function drawMap(map) {
         .enter()
         .append("path")
         .attr("d", path)
-        .style("stroke", "white")
-        .style("stroke-width", "1")
+        // .style("stroke", "#ffffff")
+        .style("stroke", "#adadad")
+        // .style("stroke-width", "1")
+        .style("stroke-width", "2")
         .style("fill", "#dddddd");
 }
 
@@ -340,24 +345,8 @@ function drawLabel(week) {
         .text(week);
 }
 
-function updateMap(covid_data) {
-    var week = "2020-10-31";
 
-    var dataArray = [];
-    for (var d = 0; d < data.length; d++) {
-        dataArray.push(+data[d].value)
-        if (!weeksArr.includes(data[d].week)) {
-            weeksArr.push(data[d].week)
-        }
-    }
-    const minVal = d3.min(dataArray)
-    const maxVal = d3.max(dataArray)
-    const ramp = d3.scaleLinear().domain([minVal, maxVal]).range([lowColor, highColor])
-
-
-}
-
-function drawPolygons(airports) {
+function drawPolygons(airports, covid_data) {
     // convert array of airports into geojson format
     const geojson = airports.map(function (airport) {
         return {
@@ -400,11 +389,15 @@ function drawPolygons(airports) {
             tooltip.attr("x", airport.x);
             tooltip.attr("y", airport.y);
 
+            tooltip.attr("data-html", "true")
             // set the tooltip text
             // tooltip.text(airport.name + " in " + airport.city + ", " + airport.state);
             tooltip.text(airport.usa_state +
-                "<br>outgoing flight: " + airport.outgoing +
-                "<br>incoming flight: " + airport.incoming
+                "\noutgoing flight: " + airport.outgoing +
+                "\nincoming flight: " + airport.incoming + 
+                " test: " + state_to_value.get(airport.usa_state)
+                // " test: " + Number(state_to_value.get(airport.usa_state)).toPrecision(5)
+                // " test: " + d.properties.name
             );
 
             // double check if the anchor needs to be changed
@@ -617,7 +610,14 @@ function updateChart(week, data, ramp) {
 
     //update json data
     weekData.forEach(function (row) {
-        state_to_value.set(row.state, row.value);
+        // state_to_value.set(row.state, row.value);
+        if (row.value !== "No Data") {
+            state_to_value.set(row.state, Number(row.value).toPrecision(3));
+        }
+        else {
+            state_to_value.set(row.state, row.value);
+        }
+        
     })
 
     //redraw map

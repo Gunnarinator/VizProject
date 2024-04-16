@@ -1,3 +1,7 @@
+text {
+  white-space: pre-line;
+}
+
 body {
   background-color: white;
   text-align: center;
@@ -42,7 +46,7 @@ body {
 
 .highlight {
   opacity: 1 !important;
-  stroke: red !important;
+  stroke: rgb(78, 255, 246) !important;
   stroke-width: 2px !important;
   stroke-opacity: 0.8 !important;
 }
@@ -55,12 +59,18 @@ g#voronoi {
 #tooltip {
   font-size: 10pt;
   font-weight: 900;
-  fill: white;
-  text-shadow: 1px 1px 0 #252525, 1px -1px 0 #252525, -1px 1px 0 #252525, -1px -1px 0 #252525;
+  fill: rgb(0, 0, 0);
+  text-shadow: 1px 1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff, -1px -1px 0 #ffffff;
+  /* text-shadow: 1px 1px 0 #252525, 1px -1px 0 #252525, -1px 1px 0 #252525, -1px -1px 0 #252525; */
 }
 
 .legend {
   position: absolute;
   left: 20px;
   top: 80px;
+}
+
+#mySlider {
+  overflow: hidden;
+  width: 50%;
 }
