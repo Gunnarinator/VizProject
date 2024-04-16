@@ -333,6 +333,12 @@ function drawTitle() {
         .style("font-weight", "bold")
         .style("font-family", "sans-serif")
         .text("U.S. Covid Deaths per capita vs. Air Travel");
+    var label2 = d3.select("#reminderText")
+        label2.append("text")
+            .attr("class", "weekText")
+            .style("font-size", "12px")
+            .style("font-family", "sans-serif")
+            .text("Hover over states for more info! Grey states are missing data.");
 }
 
 function drawLabel(week) {
@@ -395,7 +401,7 @@ function drawPolygons(airports, covid_data) {
             tooltip.text(airport.usa_state +
                 "\noutgoing flight: " + airport.outgoing +
                 "\nincoming flight: " + airport.incoming + 
-                " test: " + state_to_value.get(airport.usa_state)
+                " Weekly Deaths: " + state_to_value.get(airport.usa_state)
                 // " test: " + Number(state_to_value.get(airport.usa_state)).toPrecision(5)
                 // " test: " + d.properties.name
             );
