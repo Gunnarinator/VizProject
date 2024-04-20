@@ -4,7 +4,6 @@ location = "./data/temp/"
 main_df = pd.read_csv(f"{location}out0.csv")
 print(len(main_df))
 for i in range(1,1918):
-# for i in range(1,5):
     filename2 = f"{location}out{i}.csv"
     new_df = pd.read_csv(filename2)
     print(f"adding {filename2}")
