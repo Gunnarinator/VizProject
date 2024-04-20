@@ -399,9 +399,9 @@ function drawPolygons(airports, covid_data) {
             // set the tooltip text
             // tooltip.text(airport.name + " in " + airport.city + ", " + airport.state);
             tooltip.text(airport.usa_state +
-                "\noutgoing flight: " + airport.outgoing +
-                "\nincoming flight: " + airport.incoming + 
-                " Weekly Deaths: " + state_to_value.get(airport.usa_state)
+                ", Outgoing Flights: " + airport.outgoing +
+                ", Incoming Flights: " + airport.incoming + 
+                ", Weekly Deaths: " + state_to_value.get(airport.usa_state)
                 // " test: " + Number(state_to_value.get(airport.usa_state)).toPrecision(5)
                 // " test: " + d.properties.name
             );
